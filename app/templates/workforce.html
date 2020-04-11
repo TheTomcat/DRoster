@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+<h1>Workforce Management</h1>
+<p>
+    <button type="button" id="add-new" class="btn btn-primary js-create-emp" action="">
+        <span class="glyphicon glyphicon-plus"></span>
+        New Employee
+    </button>
+    <button type="button" id="import" class="btn btn-primary js-create-emp" action="">
+        <span class="glyphicon glyphicon-plus"></span>
+        Import Employee
+    </button>
+    <input type="text" id="employee-filter-search" onkeyup="filter()" placeholder="Search">
+</p>
+<table class="filter-table" id="employee-table">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Surname</th>
+            <th>Given Names</th>
+            <th>Payroll number</th>
+            <th>Novel ID</th>
+            <th>Pools</th>
+            <th>User</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for employee in department.employees %}
+            <tr>
+                <td>{{ employee.employee_id }}</td>
+                <td>{{ employee.surname }}</td>
+                <td>{{ employee.given_name }} {% if employee.preferred_namev%}({{ employee.preferred_name }}){% endif %}</td>
+                <td>{{ employee.payroll_id }}</td>
+                <td>{{ employee.novel_login }}</td>
+                <td>{% for pool in employee.pools %}
+                    <span class="pill">{{ pool.description }}
+                        <span class="close-pill">&times;</span>
+                        </span> {% endfor %}</td>
+                <td>{% if employee.user %}{{ employee.user.username }}{% endif %}</td>
+                <td><a href="#" onClick="toastr.info('Simple alert!');;">Edit</a></td>
+                <td class="search-index" style="display: none">{{ employee.all_data }}</td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="7" class="text-center bg-warning">No book</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

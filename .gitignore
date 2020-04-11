@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+.vscode/
+SQLiteDatabaseBrowserPortable.exe
+SQLiteDatabaseBrowserPortable.exe - Shortcut
+dump/
+choose_rounds.py
+droster.code-workspace
+app/templates/old/

@@ -1,0 +1,61 @@
+.table-wrapper tr {
+    border-bottom: 1px solid;
+  }
+  
+  .table-wrapper th {
+    background-color: #555;
+    color: #fff;
+    white-space: nowrap;
+  }
+  
+  .table-wrapper th,
+  .table-wrapper td {
+    text-align: left;
+    padding: 0.5em 1em;
+    white-space: nowrap;
+  }
+  
+  @media screen and (max-width: 1140px) {
+    .table-wrapper table {
+      display: flex;
+    }
+  
+    .table-wrapper tbody {
+      display: flex;
+      position: relative;
+      overflow-x: auto;
+      overflow-y: hidden;
+  
+      max-width: 100%;
+      background:
+        linear-gradient(to right, white 30%, rgba(255,255,255,0)),
+        linear-gradient(to right, rgba(255,255,255,0), white 70%) 0 100%,
+        radial-gradient(farthest-side at 0% 50%, rgba(0,0,0,.4), rgba(0,0,0,0)),
+        radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,.2), rgba(0,0,0,0)) 0 100%;
+      background-repeat: no-repeat;
+      background-color: white;
+      background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
+      background-position: 0 0, 100%, 0 0, 100%;
+      background-attachment: local, local, scroll, scroll;
+    }
+  
+    .table-wrapper th,
+    .table-wrapper td {
+      display: block;
+    }
+  
+    .numeric .table-wrapper {
+      text-align: right;
+    }
+  
+    .text .table-wrapper {
+      text-align: center;
+    }
+  }
+  
+  .table-wrapper p {
+    text-align: right;
+    margin-top: 1em;
+    font-style: italic;
+  }
+  

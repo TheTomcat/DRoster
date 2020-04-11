@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+<h1>Workforce Management</h1>
+<p>
+    <button type="button" id="add-new" class="btn btn-primary js-create-emp" action="">
+        <span class="glyphicon glyphicon-plus"></span>
+        New Roster group
+    </button>
+    <input type="text" id="roster-filter-search" onkeyup="filter()" placeholder="Search">
+</p>
+<table class="filter-table" id="roster-table">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Roster Description</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Version</th>
+            <th>State</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for rost_group in department.roster_groups %}
+        <tr>
+            <td>{{ rost_group.roster_group_id }}</td>
+            <td>{{ rost_group.description }}</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td><a href="#" onClick="toastr.info('Simple alert!');">Edit</a></td>
+            <td class="search-index" style="display: none"></td>
+        </tr>
+        {% for roster in rost_group.rosters %}
+        <tr>
+            <td>{{ rost_group.roster_group_id }}-{{ roster.roster_id }}</td>
+            <td></td>
+            <td>{{ roster.start }}</td>
+            <td>{{ roster.end }}</td>
+            <td></td>
+            <td></td>
+            <td><a href="#" onClick="toastr.info('Simple alert!');">Edit</a></td>
+            <td class="search-index" style="display: none"></td>
+        </tr>
+        {% for version in roster.roster_versions %}
+            <tr>
+                <td>{{ rost_group.roster_group_id }}-{{ roster.roster_id }}-{{ version.roster_version_id }}</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td>{{ version.version_number }}</td>
+                <td>{{ version.state }}</td>
+                <td><a href="#" onClick="toastr.info('Simple alert!');">Edit</a></td>
+                <td class="search-index" style="display: none"></td>
+            </tr>
+        {% endfor %}
+        {% endfor %}
+        {% else %}
+            <tr>
+                <td colspan="7" class="text-center bg-warning">No book</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

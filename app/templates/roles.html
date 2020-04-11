@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+<h1>Role Management</h1>
+<p>
+    <button type="button" id="add-new" class="btn btn-primary js-create-emp" action="">
+        <span class="glyphicon glyphicon-plus"></span>
+        New Role
+    </button>
+    <input type="text" id="role-filter-search" onkeyup="filter()" placeholder="Search">
+</p>
+<table class="filter-table" id="role-table">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Description</th>
+            <th>Elligible Pools</th>
+            <th>Edit Cover</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for role in department.roles %}
+            <tr>
+                <td>{{ role.role_id }}</td>
+                <td>{{ role.description }}</td>
+                <td>{% for pool in role.pools %}
+                    <span class="pill">{{ pool.description }}
+                        <span class="close-pill">&times;</span>
+                        </span> {% endfor %}</td>
+                <td><a href="#" onClick="toastr.info('Simple alert!');;">Edit</a></td>
+                <td class="search-index" style="display: none"></td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="7" class="text-center bg-warning">No book</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

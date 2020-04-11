@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+<form action="" method="post" class="form" role="form">
+    {{ form.csrf_token() }}
+   <d1>
+    {{ render_field(form.username) }}
+    {{ render_field(form.email) }}
+    {{ render_field(form.password) }}
+    {{ render_field(form.password2) }}
+   </d1>
+   <p><input type=submit class='btn btn-warning btn-block'>
+  </form>
+{% endblock %}

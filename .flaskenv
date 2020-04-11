@@ -1,0 +1,2 @@
+FLASK_APP=rostvenv.py
+FLASK_DEBUG=1
