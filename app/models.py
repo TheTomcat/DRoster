@@ -1099,6 +1099,3 @@ def generate_filler():
 
 	db.session.add_all(colours + users+[ICU, JR_pool, SR_pool, Con_pool]+Roles+Employees+[rg, roster,ver,ver2]+Shifts+alloc+leaves+requests)#Users+Patients+Studies+Fields+Records)
 	db.session.commit()
-
-	
-
