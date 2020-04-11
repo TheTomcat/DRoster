@@ -94,7 +94,7 @@ def daterange(start_date, end_date, include_last =False):
 
 def human_readable(pattern):
 	output = []
-	for name, day in zip(days,DAYSET):
+	for name, day in zip(pattern,DAYSET):
 		if on_day(pattern, day):
 			output.append(name)
 	return ', '.join()
@@ -129,6 +129,14 @@ eligibility = db.Table("eligibility",
 					   db.Column("role_id", db.Integer, db.ForeignKey("roles.role_id")))
 
 class Department(db.Model):
+	"""The Department is the primary organisational category for each object.
+	department_id: The primary key 
+	hr_id: Short for human readable id, a short stub that will be used in the url. A good example would be 
+			the abbreviation of the hospital combined with the abbreviated form of the unit. For instance,
+			rbwhicu or tpchimac or mbh_paeds. Constraints: lowercase, [a-z][0-9][-_]
+	long_name: The full name of the department
+	settings: [not currently in use] a json string with department-specific settings
+	"""
 	__tablename__ = "departments"
 	department_id = db.Column(db.Integer, primary_key=True)
 	hr_id = db.Column(db.String)
@@ -147,14 +155,21 @@ class Department(db.Model):
 
 	@staticmethod
 	def get_by_id(department_id):
+		"""Returns the department object for a specific id
+		"""
 		return Department.query.filter_by(department_id=department_id).first()
 	
 	@staticmethod
 	def get_by_hr_id(hr_id):
+		"""Returns the department object for a specific hr_id
+		"""
 		return Department.query.filter_by(hr_id=hr_id).first()
 	
 	@staticmethod
 	def get(department_or_hr_id):
+		"""A convenience function, returns the department object from an input which is either
+		the department object or the department hr_id
+		"""
 		if isinstance(department_or_hr_id, Department):
 			return department_or_hr_id
 		else:
@@ -168,7 +183,7 @@ class Department(db.Model):
 		
 	# 	self.generate_policies()
 
-	def generate_policies(self):
+	def generate_policies(self, user=None):
 		"""Automatically generate all policies for a newly-created department
 		"""
 		if self.policies:
@@ -176,6 +191,20 @@ class Department(db.Model):
 		for function in Function.all():
 			self.policies.append(Policy(department=self, function=function))
 		
+		admin_group = Group(name="admingroup", department=self)
+		user_group = Group(name="usergroup", department=self)
+
+		[admin_group.grant(policy) for policy in self.policies]
+		self.groups.append(admin_group)
+
+		[user_group.grant(policy) for policy in ["request_leave", "request_swap", "view_roster_current", "view_roster_old"]]
+		self.groups.append(user_group)
+
+		if user is None:
+			admin = User(username="admin")
+			admin.set_password("default")
+			admin.add_to_group(admin_group)
+
 		# Also want to generate "admin" group who can do all of the above things
 		# Ideally want to give the current user those permissions, too
 
@@ -239,6 +268,12 @@ class Department(db.Model):
 
 
 class Pool(db.Model):
+	"""Pools provide a way to group employees together by skills.
+	This is the main way in which elligible employees are rostered to specific roles.
+	Roles group together shifts.
+	For example: an ICU could be arranged as follows
+		Pools: Junior registrar pool, Senior Registrar Pool, Consultant Pool
+		Roles: JR Pod 2, JR pod 3, JR pod 4, SR short day, SR long day... etc"""
 	__tablename__ = "pools"
 	pool_id = db.Column(db.Integer, primary_key=True)
 	department_id = db.Column(db.Integer, db.ForeignKey("departments.department_id"))
@@ -260,6 +295,8 @@ class Pool(db.Model):
 		return f"Pool: {self.department}->{self.description} ({str(len(self.employees))})"
 
 class Role(db.Model):
+	"""Roles group shifts together. A role in a department could be a specific 
+	"""
 	__tablename__ = "roles"
 	role_id = db.Column(db.Integer, primary_key=True)
 	description = db.Column(db.String)
@@ -299,6 +336,15 @@ class Role(db.Model):
 # 	pool_id = db.Column(db.Integer, db.ForeignKey("pools.pool_id"))
 
 class Employee(db.Model):
+	"""Straightforward. Employees are the main pieces of DRoster. The employee objects are
+	typically created by the administrator at the time of creating a roster.
+	A user can create their own login and then use a verification code to "claim" an employee
+	(This functionality is not yet implemented)
+
+	start_date is the date of commencement of employement
+	end_date is the date of the end of employement
+
+	"""
 	__tablename__ = "employees"
 	employee_id = db.Column(db.Integer, primary_key=True)
 	department_id = db.Column(db.Integer, db.ForeignKey("departments.department_id"))
@@ -350,6 +396,12 @@ class Employee(db.Model):
 		return f"Employee: {self.given_name} {self.surname} ({self.payroll_id})"
 
 class Shift(db.Model):
+	"""Shifts inherit from a role. Shifts are specific to a particular date.
+	is_required: (default: true) for verification purposes, is it necessary that this shift be filled
+	allow_overload: (default: false) for verification purposes, can multiple people be allocated to this shift
+	rostered_hours: how many hours does this shift count towards
+	overtime_hours: how many hours overtime does this shift count towards
+	"""
 	__tablename__ = "shifts"
 	shift_id = db.Column(db.Integer, primary_key=True)
 	role_id = db.Column(db.Integer, db.ForeignKey("roles.role_id"))
@@ -359,8 +411,11 @@ class Shift(db.Model):
 	overtime_hours = db.Column(db.Numeric)
 	is_required = db.Column(db.Boolean, default=True)
 	allow_overload = db.Column(db.Boolean, default=False)
+	back_colour_id = db.Column(db.Integer, db.ForeignKey("colours.colour_id"))
+	#fore_colour_id = db.Column(db.Integer, db.ForeignKey("colours.colour_id"))
 
-	role = db.relationship("Role", back_populates="shifts")
+	back_colour = db.relationship("Role", back_populates="shifts")
+	colour = db.relationship("Colour")
 	allocations = db.relationship("Allocation", back_populates="shift")
 
 	@staticmethod
@@ -376,6 +431,9 @@ class Shift(db.Model):
 		return f"Shift: {self.role.description} - ({self.start.strftime('%d/%m/%Y %H:%m %p')})"
 
 class Allocation(db.Model):
+	"""Allocation links a shift to an employee. They group together to form a roster version.
+	Created not linked to employees, this must be assigned specifically
+	"""
 	__tablename__ = "allocations"
 	allocation_id = db.Column(db.Integer, primary_key=True)
 	shift_id = db.Column(db.Integer, db.ForeignKey("shifts.shift_id"))
@@ -407,6 +465,8 @@ class Allocation(db.Model):
 		return new
 
 class DefaultCover(db.Model):
+	"""DefaultCover is an object of convenience, it allows shifts to be automatically generated
+	"""
 	__tablename__ = "defaultcovers"
 	cover_id = db.Column(db.Integer, primary_key=True)
 	role_id = db.Column(db.Integer, db.ForeignKey("roles.role_id"))
@@ -417,13 +477,15 @@ class DefaultCover(db.Model):
 	# overnight = db.Column(Boolean)
 	rostered_hours = db.Column(db.Numeric)
 	overtime_hours = db.Column(db.Numeric)
-	fore_colour = db.Column(db.String)
-	back_colour = db.Column(db.String)
+	#fore_colour_id = db.Column(db.Integer, db.ForeignKey("colours.colour_id"))
+	back_colour_id = db.Column(db.Integer, db.ForeignKey("colours.colour_id"))
 	is_required = db.Column(db.Boolean, default=True)
 	allow_overload = db.Column(db.Boolean, default=False)
 
 	role = db.relationship("Role", back_populates="covers")
-	
+	#fore_colour = db.relationship("Colour", foreign_keys=[fore_colour_id])
+	back_colour = db.relationship("Colour", foreign_keys=[back_colour_id])
+
 	def readable_days(self):
 		return human_readable(self.days)
 
@@ -432,6 +494,25 @@ class DefaultCover(db.Model):
 		for name, code in zip(NAMED_DAYSET,DAYSET):
 			output.append((name, on_day(self.days, code)))
 		return output
+
+	@property
+	def is_overnight(self):
+		return self.start > self.end
+
+	def create_shift(self, date):
+		start_date = add_date_time(date, self.start)
+		offset = dt.timedelta(days=1 if self.is_overnight else 0)
+		end_date = add_date_time(date, self.end) + offset
+		shift = Shift(role = self.role,
+					  start = start_date,
+					  end = end_date,
+					  rostered_hours = self.rostered_hours,
+					  overtime_hours = self.overtime_hours,
+					  allow_overload = self.allow_overload,
+					  is_required = self.is_required,
+					  back_colour = self.back_colour
+					  )
+		return shift
 
 	def create_shifts(self, start=None, days=7):
 		d_offset = 0 if self.start < self.end else 1
@@ -451,6 +532,9 @@ class DefaultCover(db.Model):
 		return output
 
 class RosterGroup(db.Model):
+	"""RosterGroups allow the convenient categorisation and splitting of rosters within a department.
+	For instance, it would be natural to categorise rosters in a similar way to pools.
+	"""
 	__tablename__ = "roster_groups"
 	roster_group_id = db.Column(db.Integer, primary_key=True)
 	department_id = db.Column(db.Integer, db.ForeignKey('departments.department_id'))
@@ -460,6 +544,9 @@ class RosterGroup(db.Model):
 	rosters = db.relationship("Roster", back_populates="roster_group")
 
 class Roster(db.Model):
+	"""Rosters derive from RosterGroups. They consist of a collection of shifts that require employees allocated.
+	They also have a start and end date which are used to populate the default covers
+	"""
 	__tablename__ = "rosters"
 	roster_id = db.Column(db.Integer, primary_key=True)
 	roster_group_id = db.Column(db.Integer, db.ForeignKey('roster_groups.roster_group_id'))
@@ -527,6 +614,9 @@ class Roster(db.Model):
 			pass
 
 class RosterVersion(db.Model):
+	"""
+	state: [incomplete|draft|finalised]
+	"""
 	__tablename__ = "roster_versions"
 	roster_version_id = db.Column(db.Integer, primary_key=True)
 	roster_id = db.Column(db.Integer, db.ForeignKey("rosters.roster_id"))
@@ -605,14 +695,25 @@ class RosterVersion(db.Model):
 		return T.build_html_table()
 
 class Swap(db.Model):
+	"""Under development - a Swap takes an existing allocation (i.e., shift and employee) and
+	a requesting employee and links them as a swap:
+	Allocation(Shift1, Employee1) and Employee2
+	would become
+	Allocation(Shift1, Employee2) and Employee1
+
+	Requires approval from employee1 (approval_a) and employee2 (approval_b), as well 
+	as managerial approval.
+	"""
 	__tablename__ = "swaps"
 	swap_id =  db.Column(db.Integer, primary_key=True)
 	allocation_id = db.Column(db.Integer, db.ForeignKey("allocations.allocation.id"))
 	employee_id = db.Column(db.Integer, db.ForeignKey("employees.employee_id"))
 	approval_a = db.Column(db.Integer, db.ForeignKey("approvals.approval_id"))
 	approval_b = db.Column(db.Integer, db.ForeignKey("approvals.approval_id"))
+	approval_manager = db.Column(db.Integer, db.ForeignKey("approvals.approval_id"))
 	
 class LeaveRequestGroup(db.Model):
+
 	__tablename__ = "leave_request_groups"
 	leave_request_group_id = db.Column(db.Integer, primary_key=True)
 	employee_id = db.Column(db.Integer, db.ForeignKey("employees.employee_id"))
@@ -735,13 +836,19 @@ class Group(db.Model):
 	users = db.relationship("User", secondary=user_group, back_populates="groups")
 
 	def grant(self, function_or_code):
+		if isinstance(function_or_code, Policy):
+			policy = function_or_code
 		# Get the policy
-		policy = Policy.get(self.department, function_or_code) # self.department.get_policy(function_or_code)
+		else:
+			policy = Policy.get(self.department, function_or_code) # self.department.get_policy(function_or_code)
 		if policy not in self.policies:
 			self.policies.append(policy)
 	
 	def revoke(self, function_or_code):
-		policy = Policy.get(self.department, function_or_code) #self.department.get_policy(function_or_code)
+		if isinstance(function_or_code, Policy):
+			policy = function_or_code
+		else:
+			policy = Policy.get(self.department, function_or_code) #self.department.get_policy(function_or_code)
 		if policy in self.policies:
 			self.policies.remove(policy)		
 
