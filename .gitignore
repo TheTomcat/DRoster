@@ -7,7 +7,6 @@ dump/
 choose_rounds.py
 droster.code-workspace
 app/templates/old/
-old/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
